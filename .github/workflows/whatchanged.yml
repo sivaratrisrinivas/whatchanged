@@ -1,0 +1,28 @@
+# Copy to .github/workflows/whatchanged.yml in a repo that vendors the elevenlabs SDK.
+# On a regeneration PR, compare the version on the base branch with the one in the PR.
+name: whatchanged
+on:
+  pull_request:
+    paths: [requirements.txt, pyproject.toml]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read elevenlabs versions
+        id: v
+        run: |
+          get() { grep -ioP 'elevenlabs[=~<>]+\K[0-9][^ ,"]*' | head -1; }
+          echo "from=$(git show origin/${{ github.base_ref }}:requirements.txt | get)" >> "$GITHUB_OUTPUT"
+          echo "to=$(get < requirements.txt)" >> "$GITHUB_OUTPUT"
+      - uses: ./
+        with:
+          from: ${{ steps.v.outputs.from }}
+          to: ${{ steps.v.outputs.to }}
