@@ -88,8 +88,15 @@ the report to the job summary and, on pull requests, posts or updates one PR com
 [`examples/whatchanged.yml`](examples/whatchanged.yml) shows a workflow that compares the SDK
 version on the base branch with the one in the PR. `tests/test_action.py` simulates it locally: it runs the shell and JavaScript from the YAML
 against a clean venv, fake runner variables and a stubbed GitHub API (create, update-in-place,
-truncation). It has not run on GitHub itself, so token permissions and the `uses:` wiring are
-untested.
+truncation).
+
+It has also run for real on a throwaway draft PR in this repo
+([#1](https://github.com/sivaratrisrinivas/whatchanged/pull/1), `elevenlabs` 2.54.0 to 2.59.0):
+the workflow succeeded with the default `GITHUB_TOKEN` and `pull-requests: write`, and
+`github-actions[bot]` posted the report, identical to the local one. Re-running the workflow left a
+single comment rather than adding a second. That run used `uses: ./`; the published
+`uses: sivaratrisrinivas/whatchanged@main` form, and a PR that exceeds the comment size limit,
+have not been exercised on GitHub.
 
 ## Development
 
@@ -104,4 +111,4 @@ network on first run). `tests/test_diff.py` uses hand-built snapshots.
 ## Next steps
 
 - The same approach for the JS SDK.
-- Try the action on a real regeneration PR (the one thing the simulation cannot cover).
+- Try the `@main` reference once this branch is merged, and a real regeneration PR.
