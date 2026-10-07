@@ -61,7 +61,7 @@ generated files per version is not a realistic way to find that.
     (`get_request_body` stopped dropping empty bodies);
   - `save_a_voice_preview` was removed.
 - [`reports/2.70.0..2.71.0.md`](reports/2.70.0..2.71.0.md): no wire changes, new enum members
-  and eight new methods.
+  and nine new methods.
 
 ## What's simplified
 
