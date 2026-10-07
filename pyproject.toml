@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whatchanged"
+version = "0.1.0"
+description = "Report surface and wire changes between two versions of the elevenlabs Python SDK"
+requires-python = ">=3.10"
+dependencies = ["httpx", "packaging"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+whatchanged = "whatchanged.cli:main"
+
+[tool.setuptools]
+packages = ["whatchanged"]
