@@ -81,6 +81,14 @@ generated files per version is not a realistic way to find that.
   member) are not compared.
 - Everything runs against `MockTransport`: no API key and no network calls to ElevenLabs.
 
+## GitHub Action
+
+`action.yml` is a composite action with inputs `from` and `to` (and optional `guide`). It writes
+the report to the job summary and, on pull requests, posts or updates one PR comment.
+[`examples/whatchanged.yml`](examples/whatchanged.yml) shows a workflow that compares the SDK
+version on the base branch with the one in the PR. The action has not been run on GitHub yet; only
+its YAML has been parsed.
+
 ## Development
 
 ```console
@@ -94,4 +102,4 @@ network on first run). `tests/test_diff.py` uses hand-built snapshots.
 ## Next steps
 
 - The same approach for the JS SDK.
-- Run on every regeneration PR and post the report as a comment.
+- Try the action on a real regeneration PR.
