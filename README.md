@@ -86,8 +86,10 @@ generated files per version is not a realistic way to find that.
 `action.yml` is a composite action with inputs `from` and `to` (and optional `guide`). It writes
 the report to the job summary and, on pull requests, posts or updates one PR comment.
 [`examples/whatchanged.yml`](examples/whatchanged.yml) shows a workflow that compares the SDK
-version on the base branch with the one in the PR. The action has not been run on GitHub yet; only
-its YAML has been parsed.
+version on the base branch with the one in the PR. `tests/test_action.py` simulates it locally: it runs the shell and JavaScript from the YAML
+against a clean venv, fake runner variables and a stubbed GitHub API (create, update-in-place,
+truncation). It has not run on GitHub itself, so token permissions and the `uses:` wiring are
+untested.
 
 ## Development
 
@@ -102,4 +104,4 @@ network on first run). `tests/test_diff.py` uses hand-built snapshots.
 ## Next steps
 
 - The same approach for the JS SDK.
-- Try the action on a real regeneration PR.
+- Try the action on a real regeneration PR (the one thing the simulation cannot cover).
