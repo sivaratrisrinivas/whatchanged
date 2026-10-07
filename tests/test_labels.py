@@ -34,4 +34,5 @@ def test_voices_update_labels_before_after_bytes(report):
 def test_alias_rename_is_not_a_type_change(report):
     types = section(report, "Type changed")
     assert "voices.update" not in types
-    assert "EditVoiceRequestLabels" not in report.split("## Added")[0].split("## Type changed")[-1]
+    assert "VoicesUpdateRequestLabels" not in types
+    assert "EditVoiceRequestLabels" not in types

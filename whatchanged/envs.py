@@ -6,15 +6,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-CACHE = Path(".cache")
+DEFAULT_CACHE = Path(".cache")
 CAPTURE = Path(__file__).with_name("capture.py")
 
 
-def env_dir(version: str, cache: Path = CACHE) -> Path:
+def env_dir(version: str, cache: Path) -> Path:
     return cache / "env" / version
 
 
-def ensure_env(version: str, cache: Path = CACHE) -> Path:
+def ensure_env(version: str, cache: Path) -> Path:
     d = env_dir(version, cache)
     if (d / "elevenlabs").is_dir():
         return d
@@ -27,7 +27,7 @@ def ensure_env(version: str, cache: Path = CACHE) -> Path:
     return d
 
 
-def snapshot(version: str, cache: Path = CACHE, refresh: bool = False) -> dict:
+def snapshot(version: str, cache: Path, refresh: bool = False) -> dict:
     """Return the capture snapshot for a version, running capture.py in isolation (cached)."""
     snap = cache / "snapshots" / f"{version}.json"
     if snap.exists() and not refresh:

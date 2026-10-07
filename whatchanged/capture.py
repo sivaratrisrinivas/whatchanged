@@ -38,7 +38,6 @@ except Exception:  # pragma: no cover
 
 JSONISH = re.compile(r"labels?|metadata|json", re.I)
 FILE_VALUE = ("a.mp3", b"\x00\x01", "audio/mpeg")
-MAX_VARIANTS_PER_PARAM = 6
 IGNORED_HEADERS = {"host", "content-length", "user-agent", "accept-encoding", "connection",
                    "content-type", "xi-api-key"}
 
@@ -53,13 +52,27 @@ class CallTimeout(Exception):
 
 # ---------------------------------------------------------------- type normalisation
 
+def label_of(tp):
+    origin = typing.get_origin(tp)
+    if origin is not None:
+        return getattr(origin, "__name__", str(origin)).lower()
+    if isinstance(tp, type):
+        return tp.__name__
+    return norm(tp)
+
+
 def _members(tp):
-    """Flattened members of a Union (or [tp]), without None."""
+    """Flattened members of a Union (or [tp]), without None, in a version-independent order."""
+    # by name first: adding or removing fields in a member must not change which one comes first
+    return sorted(_flat_members(tp), key=lambda m: (label_of(m), norm(m, names=False)))
+
+
+def _flat_members(tp):
     origin = typing.get_origin(tp)
     if origin is typing.Union or origin is getattr(types, "UnionType", object()):
         out = []
         for a in typing.get_args(tp):
-            out.extend(_members(a))
+            out.extend(_flat_members(a))
         return [m for m in out if m is not type(None)]
     if tp is type(None):
         return []
@@ -119,9 +132,10 @@ def norm(tp, names=True):
 
 try:
     from elevenlabs.core import File as _File
-    FILE_SET = frozenset(norm(m) for m in _members(_File))
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     FILE_SET = frozenset()
+else:
+    FILE_SET = frozenset(norm(m) for m in _members(_File))
 
 
 def is_file(tp):
@@ -155,7 +169,7 @@ def syn(name, tp, raw=False):
         return [syn(name, args[0], raw) if args else "x"]
     if origin in (dict, collections.abc.Mapping):
         if len(args) > 1:
-            v = "v" if args[1] is str else syn(name, args[1], raw)
+            v = "v" if args[1] in (str, typing.Any) else syn(name, args[1], raw)
         else:
             v = "v"
         return {"k": v}
@@ -200,15 +214,6 @@ def syn(name, tp, raw=False):
     raise Skip(f"cannot synthesize {norm(tp)}")
 
 
-def label_of(tp):
-    origin = typing.get_origin(tp)
-    if origin is not None:
-        return getattr(origin, "__name__", str(origin)).lower()
-    if isinstance(tp, type):
-        return tp.__name__
-    return norm(tp)
-
-
 def variants(name, tp):
     """[(label|None, value|Skip)] — one entry per Union member, else a single entry."""
     ms = _members(tp)
@@ -218,7 +223,7 @@ def variants(name, tp):
         except Skip as e:
             return [(None, e)]
     out = []
-    for m in ms[:MAX_VARIANTS_PER_PARAM]:
+    for m in ms:
         try:
             out.append((label_of(m), syn(name, m)))
         except Skip as e:
@@ -251,7 +256,7 @@ def norm_request(req: httpx.Request):
     if body:
         if ctype == "application/json":
             try:
-                nb = json.loads(body)
+                nb = json.loads(json.dumps(json.loads(body), sort_keys=True))
             except Exception:
                 nb = body.decode("utf-8", "replace")[:200]
         elif ctype == "multipart/form-data":

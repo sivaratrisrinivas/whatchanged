@@ -22,7 +22,7 @@ jobs:
           get() { grep -ioP 'elevenlabs[=~<>]+\K[0-9][^ ,"]*' | head -1; }
           echo "from=$(git show origin/${{ github.base_ref }}:requirements.txt | get)" >> "$GITHUB_OUTPUT"
           echo "to=$(get < requirements.txt)" >> "$GITHUB_OUTPUT"
-      - uses: ./
+      - uses: sivaratrisrinivas/whatchanged@main
         with:
           from: ${{ steps.v.outputs.from }}
           to: ${{ steps.v.outputs.to }}
