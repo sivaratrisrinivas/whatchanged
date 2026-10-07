@@ -1,9 +1,5 @@
 # whatchanged
 
-`whatchanged FROM TO` tells you what actually changed between two published versions of the
-[`elevenlabs`](https://pypi.org/project/elevenlabs/) Python SDK, including changes to the HTTP
-request an unchanged call sends.
-
 The same call, two versions:
 
 ```python
@@ -18,6 +14,10 @@ client.voices.update("vid", name="n", labels='{"accent": "british"}')
 Passing a `dict` for `labels` raises `TypeError` in 2.54.0 and is sent as JSON in 2.59.0. The type
 alias was renamed (`VoicesUpdateRequestLabels` to `EditVoiceRequestLabels`), but both resolve to
 `Union[Dict[str, str], str]`, so `whatchanged` reports the wire change and no type change.
+
+`whatchanged FROM TO` finds changes like this between any two published versions of the
+[`elevenlabs`](https://pypi.org/project/elevenlabs/) Python SDK, including changes to the HTTP
+request an unchanged call sends.
 
 ```console
 $ pip install -e .
@@ -49,7 +49,16 @@ generated files per version is not a realistic way to find that.
    `(HTTP method, path template)` are reported as **moved**. A variant is only compared when both
    versions received identical synthesized inputs, otherwise it is listed under Skipped.
 5. **Report.** Sections in order: Wire behavior changed, Breaking, Moved, Type changed, Added,
-   Skipped. A wire change shared by 8 or more methods is shown once with the method list collapsed.
+   Skipped. The Skipped count is variants that could not be synthesized; variants whose inputs
+   differ between versions are listed inside the same collapsed block as "not compared".
+
+Choices beyond the brief, all visible in the report:
+
+- A wire change shared by 8 or more methods is shown once with the method list collapsed, so one
+  SDK-wide change doesn't bury the rest.
+- Breaking also covers a param becoming required and a changed positional order. Type changed also
+  lists required to optional.
+- Headers are compared (volatile ones such as `user-agent` and `x-fern-*` are ignored).
 
 ## Sample reports
 
@@ -76,7 +85,8 @@ generated files per version is not a realistic way to find that.
 - Sync client only. No websockets, realtime or conversation modules.
 - Arguments are synthesized, one parameter at a time. Combinations of optional params are not
   explored, and a variant that cannot be synthesized is listed under Skipped.
-- Multipart field order and JSON key order are not treated as changes.
+- Multipart field order and JSON key order are stored in the snapshot but not compared, because
+  neither is semantic on the wire.
 - Variants whose synthesized inputs differ between versions (for example an enum that gained a
   member) are not compared.
 - Everything runs against `MockTransport`: no API key and no network calls to ElevenLabs.
@@ -111,4 +121,5 @@ network on first run). `tests/test_diff.py` uses hand-built snapshots.
 ## Next steps
 
 - The same approach for the JS SDK.
-- Try the `@main` reference once this branch is merged, and a real regeneration PR.
+- Run it on every real regeneration PR: the action exists and ran on a staged PR, so what is left
+  is wiring it into the SDK's own regen workflow and trying the `@main` reference after merge.
