@@ -38,6 +38,22 @@ $ whatchanged 2.71.0 3.0.0a1 --guide v3
 
 The second command also lists changes that the [v3 upgrade guide](https://github.com/elevenlabs/elevenlabs-python/wiki/v3-upgrade-guide) does not mention. The report calls them possible additions, not errors.
 
+Two versions go in and one report comes out. Each version is installed and captured in its own subprocess, and only the saved snapshots meet in the diff.
+
+```mermaid
+flowchart LR
+    CLI["whatchanged FROM TO"] --> OLD["Version FROM<br/>pip install --target"]
+    CLI --> NEW["Version TO<br/>pip install --target"]
+    OLD --> CAP1["capture.py in python -I<br/>mock transport"]
+    NEW --> CAP2["capture.py in python -I<br/>mock transport"]
+    CAP1 --> S1["Snapshot<br/>signatures and requests"]
+    CAP2 --> S2["Snapshot<br/>signatures and requests"]
+    S1 --> DIFF["diff.py<br/>match methods, compare requests, detect moves"]
+    S2 --> DIFF
+    DIFF --> REPORT["report.py<br/>Markdown report"]
+    REPORT --> OUT["File, job summary or PR comment"]
+```
+
 The tool works in five steps.
 
 1. It installs each version into its own folder with `pip install --target .cache/env/<version>` and caches it, so `elevenlabs` never touches your environment.
