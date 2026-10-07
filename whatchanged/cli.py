@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .diff import diff
 from .envs import snapshot
+from .guides import GUIDES
 from .report import render
 
 
@@ -18,12 +19,15 @@ def main(argv=None) -> int:
     ap.add_argument("-o", "--output", help="write the Markdown report here (default: stdout)")
     ap.add_argument("--cache", default=".cache", help="cache directory (default: .cache)")
     ap.add_argument("--refresh", action="store_true", help="re-run capture even if a snapshot is cached")
+    ap.add_argument("--guide", choices=sorted(GUIDES),
+                    help="flag changes the named upgrade guide does not mention as possible additions")
     args = ap.parse_args(argv)
 
     cache = Path(args.cache)
     old = snapshot(args.from_version, cache, args.refresh)
     new = snapshot(args.to_version, cache, args.refresh)
-    md = render(diff(old, new, args.from_version, args.to_version))
+    md = render(diff(old, new, args.from_version, args.to_version),
+                GUIDES.get(args.guide))
     if args.output:
         Path(args.output).write_text(md)
     else:

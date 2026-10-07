@@ -22,6 +22,7 @@ alias was renamed (`VoicesUpdateRequestLabels` to `EditVoiceRequestLabels`), but
 ```console
 $ pip install -e .
 $ whatchanged 2.54.0 2.59.0 -o report.md
+$ whatchanged 2.71.0 3.0.0a1 --guide v3   # also flag what the upgrade guide misses
 ```
 
 ## Problem
@@ -60,6 +61,13 @@ generated files per version is not a realistic way to find that.
   - 34 methods now send an empty `{}` JSON body where 2.54.0 sent no body
     (`get_request_body` stopped dropping empty bodies);
   - `save_a_voice_preview` was removed.
+- [`reports/2.71.0..3.0.0a1.md`](reports/2.71.0..3.0.0a1.md) (`--guide v3`): 167 methods moved
+  (`conversational_ai.*` to `agents.*`, matched by endpoint rather than name). Wire changes were
+  hand-checked: 3.0 stops sending `null` for omitted optional multipart fields, reversing the 2.59
+  change. Breaking items the [v3 upgrade guide](https://github.com/elevenlabs/elevenlabs-python/wiki/v3-upgrade-guide)
+  does not mention are listed as *possible additions*, not errors. Many of them are 2.71 features
+  the 3.0.0a1 branch does not have yet (`merge_proposals`, `triage_tickets` params), so read them as
+  "alpha lags 2.71" before "undocumented removal".
 - [`reports/2.70.0..2.71.0.md`](reports/2.70.0..2.71.0.md): no wire changes, new enum members
   and nine new methods.
 

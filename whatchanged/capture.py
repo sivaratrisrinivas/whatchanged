@@ -184,8 +184,11 @@ def syn(name, tp, raw=False):
         if pydantic is not None and issubclass(tp, pydantic.BaseModel):
             try:
                 hints = typing.get_type_hints(tp)
+                # Literal fields are included even when optional: they are the discriminators
+                # that union resolution needs
                 vals = {n: syn(n, hints.get(n, f.annotation), True)
-                        for n, f in tp.model_fields.items() if f.is_required()}
+                        for n, f in tp.model_fields.items()
+                        if f.is_required() or typing.get_origin(hints.get(n, f.annotation)) is typing.Literal}
                 return vals if raw else tp.model_construct(**vals)
             except Skip:
                 raise

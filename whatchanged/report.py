@@ -5,6 +5,7 @@ import json
 from collections import defaultdict
 
 from .diff import Changes
+from .guides import possible_additions
 
 GLOBAL_THRESHOLD = 8  # a wire change seen on this many methods is reported once, not per method
 MAX_VALUE = 200
@@ -54,7 +55,22 @@ def _wire_section(ch: Changes) -> list:
     return out
 
 
-def render(ch: Changes) -> str:
+def _additions_section(ch: Changes, guide: dict) -> list:
+    pa = possible_additions(ch, guide)
+    n = len(pa["breaking"]) + len(pa["moved"]) + len(pa["wire"])
+    out = ["", f"## Possible additions to the {guide['name']} ({n})", "",
+           f"Changes found here that [the guide]({guide['url']}) does not mention. These are "
+           "candidates for documentation, not errors: the guide may simply be incomplete.", ""]
+    if pa["breaking"]:
+        out += [f"- `{b['method']}` ({b['kind']}): {b['detail']}" for b in pa["breaking"]]
+    if pa["moved"]:
+        out += [f"- `{m['old']}` -> `{m['new']}` (moved)" for m in pa["moved"]]
+    if pa["wire"]:
+        out.append("- wire behavior changed (see above): " + ", ".join(f"`{m}`" for m in pa["wire"]))
+    return out if n else out + ["_None._"]
+
+
+def render(ch: Changes, guide: dict | None = None) -> str:
     n_wire = len({i["method"] for i in ch.wire})
     out = [f"# whatchanged: elevenlabs {ch.old} -> {ch.new}", ""]
     out.append(f"{n_wire} methods with wire changes, {len(ch.breaking)} breaking, "
@@ -88,6 +104,9 @@ def render(ch: Changes) -> str:
 
     out += ["", f"## Added ({len(ch.added)})", ""]
     out += [f"- `{a['method']}`: {a['detail']}" for a in ch.added] or ["_None._"]
+
+    if guide:
+        out += _additions_section(ch, guide)
 
     total = sum(len(v) for v in ch.skipped.values()) + len(ch.incomparable)
     out += ["", f"## Skipped ({total})", ""]
