@@ -94,8 +94,7 @@ def norm(tp, names=True):
     if origin is typing.Literal:
         return "Literal[" + ", ".join(sorted(repr(a) for a in args)) + "]"
     if origin is not None:
-        oname = getattr(origin, "__name__", str(origin)).lower() if origin in (
-            list, dict, set, frozenset, tuple) else getattr(origin, "__name__", str(origin))
+        oname = getattr(origin, "__name__", str(origin)).lower()
         if oname in ("sequence", "mutablesequence"):
             oname = "list"
         if oname == "mapping":
@@ -132,41 +131,44 @@ def is_file(tp):
 
 # ---------------------------------------------------------------- value synthesis
 
-def syn(name, tp):
+def syn(name, tp, raw=False):
+    """Synthesize a value. raw=True builds plain dicts/values for use inside model_construct,
+    which (in Fern's UncheckedBaseModel) rebuilds nested models itself."""
     if is_file(tp):
         return FILE_VALUE
     ms = _members(tp)
     if not ms:
         raise Skip("no concrete type")
     if len(ms) > 1:
-        return syn(name, ms[0])
+        return syn(name, ms[0], raw)
     tp = ms[0]
     if tp is typing.Any:
         return "x"
     origin = typing.get_origin(tp)
     args = typing.get_args(tp)
     if origin is typing.Annotated:
-        return syn(name, args[0])
+        return syn(name, args[0], raw)
     if origin is typing.Literal:
-        return args[0]
+        return min(args, key=repr)  # order-independent, so reorders aren't reported as changes
     if origin in (list, set, frozenset, collections.abc.Sequence, collections.abc.Iterable,
                   collections.abc.MutableSequence):
-        return [syn(name, args[0]) if args else "x"]
+        return [syn(name, args[0], raw) if args else "x"]
     if origin in (dict, collections.abc.Mapping):
         if len(args) > 1:
-            v = "v" if args[1] is str else syn(name, args[1])
+            v = "v" if args[1] is str else syn(name, args[1], raw)
         else:
             v = "v"
         return {"k": v}
     if origin is tuple:
-        return tuple(syn(name, a) for a in args if a is not Ellipsis) or ("x",)
+        return tuple(syn(name, a, raw) for a in args if a is not Ellipsis) or ("x",)
     if origin is not None:
         raise Skip(f"cannot synthesize {norm(tp)}")
     if isinstance(tp, type):
         if issubclass(tp, bool):
             return True
         if issubclass(tp, enum.Enum):
-            return list(tp)[0]
+            m = min(tp, key=lambda m: repr(m.value))
+            return m.value if raw else m
         if issubclass(tp, int):
             return 1
         if issubclass(tp, float):
@@ -182,16 +184,16 @@ def syn(name, tp):
         if pydantic is not None and issubclass(tp, pydantic.BaseModel):
             try:
                 hints = typing.get_type_hints(tp)
-                vals = {n: syn(n, hints.get(n, f.annotation))
+                vals = {n: syn(n, hints.get(n, f.annotation), True)
                         for n, f in tp.model_fields.items() if f.is_required()}
-                return tp.model_construct(**vals)
+                return vals if raw else tp.model_construct(**vals)
             except Skip:
                 raise
             except Exception as e:
                 raise Skip(f"model {tp.__name__}: {type(e).__name__}")
         if typing.is_typeddict(tp):
             hints = typing.get_type_hints(tp)
-            return {k: syn(k, hints[k]) for k in getattr(tp, "__required_keys__", ())}
+            return {k: syn(k, hints[k], raw) for k in getattr(tp, "__required_keys__", ())}
     raise Skip(f"cannot synthesize {norm(tp)}")
 
 
@@ -346,7 +348,7 @@ def short_repr(v):
     if isinstance(v, enum.Enum):
         return f"{type(v).__name__}.{v.name}"
     if pydantic is not None and isinstance(v, pydantic.BaseModel):
-        return f"{type(v).__name__}(...)"
+        return "<model>"
     return repr(v)[:80]
 
 

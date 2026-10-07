@@ -17,6 +17,7 @@ class Changes:
     types: list = field(default_factory=list)     # {method, param, before, after}
     added: list = field(default_factory=list)     # {method, detail}
     skipped: dict = field(default_factory=dict)   # {version: [{method, variant, reason}]}
+    incomparable: list = field(default_factory=list)  # {method, variant, before, after}
 
 
 # ---------------------------------------------------------------- wire comparison
@@ -165,6 +166,12 @@ def compare_methods(name, old_name, ma, mb, ch: Changes):
     for key, wa in ma["wire"].items():
         wb = mb["wire"].get(key)
         if wb is None:
+            continue
+        if wa["call"] != wb["call"]:
+            # the synthesized inputs differ (e.g. an enum gained a member), so the wire
+            # difference says nothing about SDK behavior
+            ch.incomparable.append({"method": name, "variant": key,
+                                    "before": wa["call"], "after": wb["call"]})
             continue
         res = compare_wire(key, wa, wb)
         if res is None:

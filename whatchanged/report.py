@@ -89,12 +89,17 @@ def render(ch: Changes) -> str:
     out += ["", f"## Added ({len(ch.added)})", ""]
     out += [f"- `{a['method']}`: {a['detail']}" for a in ch.added] or ["_None._"]
 
-    total = sum(len(v) for v in ch.skipped.values())
+    total = sum(len(v) for v in ch.skipped.values()) + len(ch.incomparable)
     out += ["", f"## Skipped ({total})", ""]
     body = []
+    if ch.incomparable:
+        body.append(f"**Inputs differ between versions, wire not compared** ({len(ch.incomparable)})\n")
+        body += [f"- `{s['method']}` `{s['variant']}`: `{_trim(s['before'])}` vs `{_trim(s['after'])}`"
+                 for s in ch.incomparable]
+        body.append("")
     for ver, items in ch.skipped.items():
         body.append(f"**{ver}** ({len(items)})\n")
         body += [f"- `{s['method']}` `{s['variant']}`: {s['reason']}" for s in items]
         body.append("")
-    out.append(_details(f"{total} variants could not be synthesized", "\n".join(body)))
+    out.append(_details(f"{total} variants skipped", "\n".join(body)))
     return "\n".join(out) + "\n"
